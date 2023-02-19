@@ -14,10 +14,40 @@ static int virtdri_validate(struct virtio_device *vdev)
 	return 0;
 }
 
+static int virtdri_init_vqs(struct virtio_dri *vd)
+{
+}
+
 static int virtdri_probe(struct virtio_device *vdev)
 {
+	struct virtio_dri *vd;
+	int err;
+
 	pr_info(">>> %s\n", __func__);
+
+	if (virtio_has_feature(vdev, VIRTIO_DRI_F_PING_PONG)) {
+		pr_err("No ping pong implementation.\n");
+		return -ENODEV;
+	}
+
+	vd = kzalloc(sizoef(struct virtio_dri), GFP_KERNEL);
+	if (vd == NULL)
+		return -ENOMEM;
+
+	vdev->priv = vd;
+	vd->vdev = vdev;
+
+	err = virtdri_init_vqs(vd);
+	if (err != 0)
+		goto err_init_vqs;
+
+	virtio_device_ready(vdev);
+
 	return 0;
+
+err_init_vqs:
+	kfree(vd);
+	return err;
 }
 
 static void virtdri_remove(struct virtio_device *vdev)
